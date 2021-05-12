@@ -40,3 +40,6 @@ vignettes/*.pdf
 
 # Word document
 *.docx
+
+# pdf document
+*.pdf
