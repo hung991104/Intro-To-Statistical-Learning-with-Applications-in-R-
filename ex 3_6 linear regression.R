@@ -171,3 +171,64 @@ plot(lm.fit11)
 lm.fit12 = lm(mpg ~ I(displacement ^ 2) + year + origin + displacement, data = Auto)
 summary(lm.fit12)
 plot(lm.fit12)
+
+
+# Q10 ---------------------------------------------------------------------
+# Carseats data set 
+attach(Carseats)
+str(Carseats)
+skim(Carseats)
+contrasts(Carseats$US)    # check factor levels
+
+# Q10a multiple regression model
+lm.fit1 = lm(Sales ~ Population + Urban + US, data = Carseats)
+summary(lm.fit1)    
+
+# Q10b: Only US is significant
+
+# Q10d: reject null hypothesis for variables Population and Urban
+
+# Q10e: fit with a smaller model
+lm.fit2 = lm(Sales ~ US, data = Carseats)
+summary(lm.fit2)
+
+# Q10f: compare two models
+anova(lm.fit2, lm.fit1)     # lm.fit2 better than lm.fit1
+
+# Q10g 95% confidence intervals for the coefficient(s)
+confint(lm.fit2)
+
+# Q10h outliers/high leverage?
+plot(US, Sales)
+
+# plot residuals
+plot(predict(lm.fit2), rstudent(lm.fit2))    # studentized residuals
+
+par(mfrow = c(2,2))
+plot(lm.fit2)    # residuals fitted don't show strong outliers
+
+library(car)
+leveragePlots(lm.fit2)
+plot(hatvalues(lm.fit2))    # average leverage = (p + 1)/n
+
+
+# Q11 Investigate t-statistic ---------------------------------------------
+set.seed(1)
+x = rnorm(100)
+y = 2*x + rnorm(100)
+
+# Part a: simple linear regression without an intercept
+lm.fit1 = lm(y ~ x + 0)
+summary(lm.fit1)
+
+# Part b: simple linear regression of x on y
+lm.fit2 = lm(x ~ y + 0)
+summary(lm.fit2)
+
+# Part f with intercept
+lm.fit3 = lm(y ~ x)
+lm.fit4 = lm(x ~ y)
+summary(lm.fit3)
+summary(lm.fit4)
+
+# => same t-value
