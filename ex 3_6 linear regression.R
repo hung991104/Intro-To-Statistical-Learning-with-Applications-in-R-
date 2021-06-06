@@ -232,3 +232,195 @@ summary(lm.fit3)
 summary(lm.fit4)
 
 # => same t-value
+
+# Q12 SLR without intercept
+# Part b: different coefficients
+x = rnorm(100)
+y = 2 * x + rnorm(100)
+lm.fit1 = lm(y ~ x + 0)
+lm.fit2 = lm(x ~ y + 0)
+summary(lm.fit1)
+summary(lm.fit2)
+
+# Part c: same coefficient
+set.seed(1)
+x = rnorm(100, mean = 1000, sd = 2)
+y = rnorm(100, mean = 1000, sd = 2)
+lm.fit1 = lm(y ~ x + 0)
+lm.fit2 = lm(x ~ y + 0)
+summary(lm.fit1)
+summary(lm.fit2)
+
+# Q13 Create Simulated Data => SLR
+# Part a
+set.seed(100)
+x = rnorm(100)
+
+# Part b: create the noise vector
+eps = rnorm(100, sd = 0.25)
+
+# Part c
+y = -1 + 0.5 * x + eps
+length(y)
+
+# Part d: scatterplot
+plot(df1$x, df1$y)
+
+# Part e
+df1 = data.frame(x, y)
+lm.fit1 = lm(y ~ x, data = df1)
+summary(lm.fit1)$coefficients[[1]]
+summary(lm.fit1)$coefficients[[2]]
+
+# Part f
+abline(lm.fit1, col = "red", lwd = 2, lty = 1)    # fitted regression line
+abline(-1, 0.5, col = "blue", lwd = 2, lty = 2)   # true regression line 
+legend("topleft", legend = c("fitted", "true"), col = c("red", "blue"), lty = 1:2, cex = 0.8)
+
+# Part g: Polynomial regression
+lm.fit2 = lm(y ~ x + I(x^2), data = df1)
+summary(lm.fit2)
+anova(lm.fit1, lm.fit2)     # linear model is not rejected
+
+
+# Part j: confidence intervals for coefficients
+confint(lm.fit1)   # for original dataset
+
+
+# Q14 Collinearity
+# Part a
+set.seed(1)
+x1 = runif(100)
+x2 = 0.5 * x1 + rnorm(100)/100
+y =2+2* x1 +0.3* x2+ rnorm (100)
+
+# Part b
+cor(x1, x2)
+plot(x1, x2)    # linear relationship between x1 and x2
+
+# Part c
+lm.fit1 = lm(y ~ x1 + x2)
+summary(lm.fit1)
+# cannot reject H0: B1 = 0
+
+# Part d: predict y only with x1
+lm.fit2 = lm(y ~ x1)
+summary(lm.fit2)
+
+# Part e: predict y only with x2
+lm.fit3 = lm(y ~ x2)
+summary(lm.fit3)
+
+# Part f: Contradict with each other
+
+# Part g: Additional information
+x1 = c(x1, 0.1)
+x2 = c(x2, 0.8)
+y = c(y, 6)
+
+lm.fit1 = lm(y ~ x1 + x2)
+lm.fit2 = lm(y ~ x1)
+lm.fit3 = lm(y ~ x2)
+
+plot(hatvalues(lm.fit1))
+which.max(hatvalues(lm.fit1))
+
+plot(hatvalues(lm.fit2))
+which.max(hatvalues(lm.fit2))
+
+plot(hatvalues(lm.fit3))
+which.max(hatvalues(lm.fit3))
+
+# High leverage point for the models involving x2; new observation = outlier
+
+# Q15 Boston: predict crime rate 
+# Part a: linear regression for each predictor
+str(Boston)
+which(names(Boston) == "crim")
+skim(Boston)
+attach(Boston)
+data(Boston)
+
+# make chas factor
+Boston$chas = factor(Boston$chas, labels = c("N", "Y"))
+table(Boston$chas)
+
+# extract r-squared from models
+lm.fits = lapply(2:ncol(Boston), function(i) lm(Boston[, 1] ~ Boston[, i]))
+summaries = lapply(lm.fits, summary)
+sapply(summaries, function(x) c(r_sq = x$r.squared, 
+                                adj_r_sq = x$adj.r.squared))
+data.frame(variables = names(Boston)[2:ncol(Boston)], 
+        t_value = unname(sapply(summaries, function(x) c(t_value = x$coefficients[2, 3])))) %>%
+  arrange(desc(t_value))
+
+# extract p-values from models
+lm_pvalue = function(model){
+  if(class(model) != "lm")
+    stop("The input should be an object of class 'lm'")
+  f_stat = summary(model)$fstatistic
+  
+  # obtain p-value
+  pvalue = pf(f_stat[1], f_stat[2], f_stat[3], lower.tail = FALSE)
+  attributes(pvalue) = NULL
+  return(pvalue)
+}
+
+lm.fits = lapply(2:ncol(Boston), function(i) lm(Boston[, 1] ~ Boston[, i]))
+pvalue_results = sapply(lm.fits, lm_pvalue)
+pvalue_df = data.frame(variable = paste(names(Boston)[1], names(Boston)[-1], sep = "_"), p_value = round(pvalue_results,6)) %>%
+  arrange(desc(p_value))
+pvalue_df     # chas is the only non-significant predictors
+
+
+# plot crim by chas
+Boston %>%
+  ggplot(aes(x = crim)) +
+  geom_density(aes(fill = chas), alpha =0.4) +
+  scale_color_manual(values = c("#868686FF", "#EFC000FF"))+
+  scale_fill_manual(values = c("#868686FF", "#EFC000FF"))+
+  theme_bw()
+
+# Part b: multiple regression
+lm.fit.all = lm(crim~., data = Boston)
+summary(lm.fit.all)
+
+# can reject null hypothesis for zn, dis, rad, black, medv
+
+# Part c
+# Fewer predictors are statistically significant when more predictors are present
+names(summary(lm.fit.all))
+multi_coeffs = summary(lm.fit.all)$coefficients[,1][-1]
+
+lm.fits = lapply(2:ncol(Boston), function(i) lm(Boston[, 1] ~ Boston[, i]))
+summaries = lapply(lm.fits, summary)
+single_coeffs = sapply(summaries, function(x) c(coeffs = x$coefficients[2,1]))
+
+plot(single_coeffs, multi_coeffs)
+
+data.frame(var = names(Boston)[-1], single = unname(single_coeffs), multi = unname(multi_coeffs)) %>%
+  ggplot() +
+  geom_point(aes(single, multi))   # values for nox are not matched
+
+# exclude nox
+data.frame(var = names(Boston)[-1], single = unname(single_coeffs), multi = unname(multi_coeffs)) %>%
+  filter(var != "nox") %>%
+  ggplot() +
+  geom_point(aes(single, multi)) +
+  xlim(-2, 2) +
+  ylim(-2, 2) +
+  geom_abline(slope = 1, intercept = 0, color = "red") +
+  theme_bw()
+
+# univariate regression coefficients different from multiple regression coefficients 
+
+# Part d: non-linear association
+non.lm.fits = lapply(2:ncol(Boston), function(i) lm(Boston[, 1] ~ Boston[, i] + I(Boston[, i]^2) + I(Boston[, i]^3)))
+summaries = lapply(non.lm.fits, summary)
+names(summaries) = names(Boston)[2:ncol(Boston)]
+summaries
+
+test = lm(Boston[,1] ~ Boston[,11] + I(Boston[,11]^2) + I(Boston[,11] ^ 3))
+summary(test)
+
+# some predictors have non-linear relationship with the response 
