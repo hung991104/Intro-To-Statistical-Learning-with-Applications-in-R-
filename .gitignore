@@ -43,3 +43,6 @@ vignettes/*.pdf
 
 # pdf document
 *.pdf
+
+# txt document
+*.txt
